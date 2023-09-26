@@ -1,0 +1,78 @@
+---
+- name: Download AWS VM Snapshot and Deploy to VMware
+  hosts: localhost
+  gather_facts: true
+  vars_files:
+    - vars.yaml
+  tasks:
+    - name: Check if pip3 is installed
+      command: "pip3 --version"
+      register: pip3_check
+      ignore_errors: true
+
+    - name: Ensure pip3 is installed
+      become: yes
+      apt:
+        name: python3-pip
+        state: present
+      when: pip3_check.rc != 0
+
+    - name: Ensure AWS CLI, boto3, botocore, jmespath, and pyVmomi are installed
+      become: yes
+      pip:
+        name:
+          - awscli
+          - boto3
+          - botocore
+          - jmespath
+          - pyVmomi
+        state: present
+      when: pip3_check.rc == 0
+
+    - name: Export instance to S3
+      environment:
+        AWS_ACCESS_KEY_ID: "{{ aws_access_key }}"
+        AWS_SECRET_ACCESS_KEY: "{{ aws_secret_key }}"
+        AWS_DEFAULT_REGION: "{{ aws_region }}"
+      command: "aws ec2 create-instance-export-task --instance-id {{ instance_id }} --target-environment vmware --export-to-s3-task --region {{ aws_region }} DiskImageFormat=VMDK,ContainerFormat=ova,S3Bucket=my-exports,S3Prefix=snapshots/"
+      register: export_output
+
+    - name: Extract export task id from output
+      set_fact:
+        export_task_id: "{{ export_output.stdout | from_json | json_query('ExportTask.ExportTaskId') }}"
+
+    - name: Wait for export task to complete
+      environment:
+        AWS_ACCESS_KEY_ID: "{{ aws_access_key }}"
+        AWS_SECRET_ACCESS_KEY: "{{ aws_secret_key }}"
+        AWS_DEFAULT_REGION: "{{ aws_region }}"
+      command: "aws ec2 wait export-task-completed --export-task-id {{ export_task_id }}"
+      retries: 60
+      delay: 10
+      register: wait_result
+      until: wait_result is succeeded
+
+    - name: Download the exported snapshot
+      environment:
+        AWS_ACCESS_KEY_ID: "{{ aws_access_key }}"
+        AWS_SECRET_ACCESS_KEY: "{{ aws_secret_key }}"
+        AWS_DEFAULT_REGION: "{{ aws_region }}"
+      command: "aws s3 cp s3://my-exports/snapshots/{{ export_task_id }}.ova {{ download_path }}/{{ export_task_id }}.ova"
+
+#    - name: Push OVA to VMware
+#      community.vmware.vmware_deploy_ovf:
+#        hostname: "{{ vcenter_hostname }}"
+#        username: "{{ vcenter_username }}"
+#        password: "{{ vcenter_password }}"
+#        validate_certs: no
+#        name: "{{ vm_name }}"
+#        datacenter: "{{ datacenter }}"
+#        cluster: "{{ cluster }}"
+#        datastore: "{{ datastore }}"
+#        folder: "{{ folder }}"
+#        networks: "{{ vm_network_mapping }}"
+#        ovf: "{{ download_path }}/{{ export_task_id }}.ova"
+#        properties: "{{ vm_properties }}"
+#        power_on: yes
+#      delegate_to: localhost
+
