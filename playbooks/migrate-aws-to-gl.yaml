@@ -59,20 +59,20 @@
         AWS_DEFAULT_REGION: "{{ aws_region }}"
       command: "aws s3 cp s3://my-exports/snapshots/{{ export_task_id }}.ova {{ download_path }}/{{ export_task_id }}.ova"
 
-#    - name: Push OVA to VMware
-#      community.vmware.vmware_deploy_ovf:
-#        hostname: "{{ vcenter_hostname }}"
-#        username: "{{ vcenter_username }}"
-#        password: "{{ vcenter_password }}"
-#        validate_certs: no
-#        name: "{{ vm_name }}"
-#        datacenter: "{{ datacenter }}"
-#        cluster: "{{ cluster }}"
-#        datastore: "{{ datastore }}"
-#        folder: "{{ folder }}"
-#        networks: "{{ vm_network_mapping }}"
-#        ovf: "{{ download_path }}/{{ export_task_id }}.ova"
-#        properties: "{{ vm_properties }}"
-#        power_on: yes
-#      delegate_to: localhost
+    - name: Push OVA to VMware
+      community.vmware.vmware_deploy_ovf:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        validate_certs: no
+        name: "{{ vm_name }}"
+        datacenter: "{{ datacenter }}"
+        cluster: "{{ cluster }}"
+        datastore: "{{ datastore }}"
+        folder: "{{ folder }}"
+        networks: "{{ vm_network_mapping }}"
+        ovf: "{{ download_path }}/{{ export_task_id }}.ova"
+        properties: "{{ vm_properties }}"
+        power_on: yes
+      delegate_to: localhost
 
