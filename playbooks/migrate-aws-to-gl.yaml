@@ -1,19 +1,14 @@
 ---
-- name: Decrypt Ansible Vault using Morpheus Cypher
-  hosts: localhost
-  vars:
-    vault_password: "{{ lookup('morpheus_cypher', 'password/grm-pass') }}"
-
 - name: Download AWS VM Snapshot and Deploy to VMware
   hosts: localhost
   gather_facts: true
-  tasks:
+  tasks:       
     - name: Include variables from a vaulted file
       include_vars:
         file: vars.yaml
         name: vaulted_vars
         decrypt: yes
-        vault_password: "{{ vault_password }}"  
+        vault_password: "{{ lookup('morpheus_cypher', 'password/grm-pass') }}"  
         
     - name: Check if pip3 is installed
       command: "pip3 --version"
