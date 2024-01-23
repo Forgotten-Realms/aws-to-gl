@@ -4,19 +4,17 @@
   vars:
     vault_password: "{{ lookup('morpheus_cypher', 'password/grm-pass') }}"
 
-- name: Include variables from a vaulted file
-  include_vars:
-    file: vars.yaml
-    name: vaulted_vars
-    decrypt: yes
-    vault_password: "{{ vault_password }}"
-
 - name: Download AWS VM Snapshot and Deploy to VMware
   hosts: localhost
   gather_facts: true
-  vars_files:
-    - vars.yaml
   tasks:
+    - name: Include variables from a vaulted file
+      include_vars:
+        file: vars.yaml
+        name: vaulted_vars
+        decrypt: yes
+        vault_password: "{{ vault_password }}"  
+        
     - name: Check if pip3 is installed
       command: "pip3 --version"
       register: pip3_check
